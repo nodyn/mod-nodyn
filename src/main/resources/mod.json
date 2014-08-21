@@ -1,0 +1,13 @@
+{
+  "main":"io.nodyn.vertx.NodynVerticle",
+
+  "description":"Run Node.js code inside of Vert.x",
+  "licenses": ["The Apache Software License Version 2.0"],
+  "author": "Bob McWhirter",
+
+  "developers": ["Lance Ball", "Other Dev 2"],
+  "keywords": ["node.js", "nodyn"],
+  "homepage": "http://nodyn.io/",
+
+  "auto-redeploy": true
+}
