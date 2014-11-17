@@ -1,7 +1,8 @@
 package io.nodyn.vertx;
 
 import io.nodyn.Nodyn;
-import io.nodyn.NodynConfig;
+import io.nodyn.runtime.NodynConfig;
+import io.nodyn.runtime.RuntimeFactory;
 import org.vertx.java.core.Future;
 import org.vertx.java.platform.Verticle;
 
@@ -11,7 +12,7 @@ public class NodynVerticle extends Verticle {
 
     @Override
     public void start(final Future<Void> startedResult) {
-        NodynConfig config = new NodynConfig( getClass().getClassLoader() );
+        RuntimeFactory factory = RuntimeFactory.init(getClass().getClassLoader(), RuntimeFactory.RuntimeType.DYNJS);
 
         final String main = container.config().getField( "main" );
         if ( main == null || "".equals( main ) ) {
@@ -19,24 +20,19 @@ public class NodynVerticle extends Verticle {
             return;
         }
 
-        config.setArgv( new String[] { main } );
+        NodynConfig config = new NodynConfig( new String[] { main } );
 
-        this.nodyn = new Nodyn(vertx, config);
-        this.nodyn.start( new Runnable() {
-            @Override
-            public void run() {
-                startedResult.setResult(null);
-            }
-        });
+        this.nodyn = factory.newRuntime( vertx, config );
+        try {
+            this.nodyn.run();
+            startedResult.setResult(null);
+        } catch (Throwable throwable) {
+            startedResult.setFailure(throwable);
+        }
     }
 
     @Override
     public void stop() {
-        try {
-            this.nodyn.shutdown();
-            this.nodyn.await();
-        } catch (Throwable throwable) {
-            container.logger().fatal("error stopping", throwable);
-        }
+        this.nodyn.reallyExit(0);
     }
 }
