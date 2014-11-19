@@ -1,5 +1,6 @@
 package io.nodyn.vertx;
 
+import io.nodyn.ExitHandler;
 import io.nodyn.Nodyn;
 import io.nodyn.runtime.NodynConfig;
 import io.nodyn.runtime.RuntimeFactory;
@@ -14,7 +15,7 @@ public class NodynVerticle extends Verticle {
     public void start(final Future<Void> startedResult) {
         RuntimeFactory factory = RuntimeFactory.init(getClass().getClassLoader(), RuntimeFactory.RuntimeType.DYNJS);
 
-        final String main = container.config().getField( "main" );
+        final String main = container.config().getField("main");
         if ( main == null || "".equals( main ) ) {
             startedResult.setFailure( new IllegalArgumentException( "main cannot be empty" ) );
             return;
@@ -24,7 +25,13 @@ public class NodynVerticle extends Verticle {
 
         this.nodyn = factory.newRuntime( vertx, config );
         try {
-            this.nodyn.run();
+            this.nodyn.setExitHandler(new ExitHandler() {
+                @Override
+                public void reallyExit(int i) {
+                    NodynVerticle.this.stop();
+                }
+            });
+            this.nodyn.runAsync();
             startedResult.setResult(null);
         } catch (Throwable throwable) {
             startedResult.setFailure(throwable);
@@ -33,6 +40,5 @@ public class NodynVerticle extends Verticle {
 
     @Override
     public void stop() {
-        this.nodyn.reallyExit(0);
     }
 }

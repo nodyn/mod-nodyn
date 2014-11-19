@@ -30,27 +30,33 @@ import static org.vertx.testtools.VertxAssert.*;
 public class ModuleIntegrationTest extends TestVerticle {
 
     @Test
-    public void testSomethingElse() {
-        // Whatever
-        //testComplete();
-        System.err.println( "sending a message" );
-        vertx.eventBus().send( "sample.app", "Hello!", new Handler<Message<String>>() {
-            @Override
-            public void handle(Message<String> event) {
-                System.err.println( "received a reply" );
-                assertTrue( event.body().equals( "Howdy!" ) );
-                testComplete();
+    public void testNodynVertxIntegration() {
+        // it takes a while for the JS to spin up and it's the JS bit that is registering the
+        // event bus address for "sample.app", so we call sendMessage() a few times in a loop
+        // until we either succeed or give up with a failure
+        HelloHandler handler = new HelloHandler();
+        for (int i=0; i<10; i++) {
+
+            sendMessage(handler);
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                break;
             }
-        });
-        System.err.println( "sent a message" );
+        }
+        testComplete();
     }
 
+    private void sendMessage(HelloHandler handler) {
+        vertx.eventBus().sendWithTimeout( "sample.app", "Hello!", 10000, handler );
+    }
 
     @Override
     public void start() {
         initialize();
         JsonObject config = new JsonObject();
-        config.putString( "main", "./src/test/resources/sample_app.js" );
+        config.putString("main", "./src/test/resources/sample_app.js");
         container.deployModule(System.getProperty("vertx.modulename"), config, new AsyncResultHandler<String>() {
             @Override
             public void handle(AsyncResult<String> asyncResult) {
@@ -63,4 +69,12 @@ public class ModuleIntegrationTest extends TestVerticle {
         });
     }
 
+    private static class HelloHandler implements Handler<AsyncResult<Message<String>>> {
+        @Override
+        public void handle(AsyncResult<Message<String>> messageAsyncResult) {
+            if (messageAsyncResult.failed()) return;
+            Message<String> event = messageAsyncResult.result();
+            assertTrue( event.body().equals( "Howdy!" ) );
+        }
+    }
 }
