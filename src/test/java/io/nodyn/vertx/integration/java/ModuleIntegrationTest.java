@@ -31,25 +31,9 @@ public class ModuleIntegrationTest extends TestVerticle {
 
     @Test
     public void testNodynVertxIntegration() {
-        // it takes a while for the JS to spin up and it's the JS bit that is registering the
-        // event bus address for "sample.app", so we call sendMessage() a few times in a loop
-        // until we either succeed or give up with a failure
-        HelloHandler handler = new HelloHandler();
-        for (int i=0; i<10; i++) {
-
-            sendMessage(handler);
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-                break;
-            }
-        }
-        testComplete();
-    }
-
-    private void sendMessage(HelloHandler handler) {
-        vertx.eventBus().sendWithTimeout( "sample.app", "Hello!", 10000, handler );
+        vertx.eventBus().sendWithTimeout( "sample.app", 
+            "Hello!", 10000, 
+            new HelloHandler() );
     }
 
     @Override
@@ -74,7 +58,9 @@ public class ModuleIntegrationTest extends TestVerticle {
         public void handle(AsyncResult<Message<String>> messageAsyncResult) {
             if (messageAsyncResult.failed()) return;
             Message<String> event = messageAsyncResult.result();
+            System.err.println("ok: " + event.body());
             assertTrue( event.body().equals( "Howdy!" ) );
+            testComplete();
         }
     }
 }

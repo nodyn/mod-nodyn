@@ -1,5 +1,7 @@
 package io.nodyn.vertx;
 
+import io.nodyn.Callback;
+import io.nodyn.CallbackResult;
 import io.nodyn.ExitHandler;
 import io.nodyn.Nodyn;
 import io.nodyn.runtime.NodynConfig;
@@ -31,8 +33,17 @@ public class NodynVerticle extends Verticle {
                     NodynVerticle.this.stop();
                 }
             });
-            this.nodyn.runAsync();
-            startedResult.setResult(null);
+            this.nodyn.runAsync(new Callback() {
+                @Override
+                public Object call(CallbackResult callbackResult) {
+                    if (callbackResult.isError()) {
+                        startedResult.setFailure(callbackResult.getError());
+                    } else {
+                        startedResult.setResult(null);
+                    }
+                    return null;
+                }
+            });
         } catch (Throwable throwable) {
             startedResult.setFailure(throwable);
         }
